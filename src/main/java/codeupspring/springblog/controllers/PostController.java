@@ -35,28 +35,43 @@ public class PostController {
     public String postView(Model model, @PathVariable long id){
 //    get single post by id later
         Post post = postDao.getOne(id);
-
         model.addAttribute("post",post);
         return "posts/show";
     }
 
-    @PostMapping("/posts/delete/{id}")
+    @GetMapping("/posts/{id}/edit")
+    public String viewEditPostForm(@PathVariable long id, Model model){
+        model.addAttribute("post",postDao.getOne(id));
+        return "posts/edit";
+    }
+
+    @PostMapping("/posts/{id}/edit")
+    public String updatePost(@PathVariable long id, @ModelAttribute Post post){
+        User user = userDao.findAll().get(0);
+        post.setUser(user);
+        postDao.save(post);
+        return "redirect:/posts";
+    }
+
+    @PostMapping("/posts/{id}/delete")
     public String deletePost( Model model,@PathVariable long id){
           postDao.deleteById(id);
         return "redirect:/posts";
     }
 
     @GetMapping("/posts/create")
-    @ResponseBody
-    public String postForm(){
-        User user = userDao.getOne(1L);
-        System.out.println(user.getEmail());
-        return "view the form for creating a post";
+    public String postForm(Model model){
+        model.addAttribute("post", new Post());
+        return "posts/create";
     }
 
     @PostMapping("/posts/create")
-    @ResponseBody
-    public String createPost(){
-        return "Create a new post";
+    public String createPost(@ModelAttribute Post post){
+        // Will throw if no users in the db!
+        // In the future, we will get the logged in user!
+        User user = userDao.findAll().get(0);
+        post.setUser(user);
+        postDao.save(post);
+        return "redirect:/posts";
     }
 }
