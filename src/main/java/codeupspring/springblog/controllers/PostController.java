@@ -1,26 +1,30 @@
 package codeupspring.springblog.controllers;
 
 import codeupspring.springblog.Models.Post;
+import codeupspring.springblog.Models.User;
+import codeupspring.springblog.repositories.PostRepository;
+import codeupspring.springblog.repositories.UserRepository;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+//import codeupspring.springblog.repositories.PostRepository;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Controller
 public class PostController {
+// Interface injections
+    private final PostRepository postDao;
+    private final UserRepository userDao;
 
+    public PostController(PostRepository postDao, UserRepository userDao){
+        this.postDao = postDao;
+        this.userDao = userDao;
+    }
     @GetMapping("/posts")
     public String postsIndex(Model model){
-        Post post1 = new Post("First Post", "This is my first post", 1 );
-        Post post2 = new Post("Second Post", "This is my second post", 2);
-        Post post3 = new Post("Third Post", "This is my third post", 3);
 
-        List<Post> postList = new ArrayList<>();
-        postList.add(post1);
-        postList.add(post2);
-        postList.add(post3);
+        List<Post> postList = postDao.findAll();
 
         model.addAttribute("title", "All Posts");
         model.addAttribute("posts", postList);
@@ -28,23 +32,46 @@ public class PostController {
         return "posts/index";
     }
     @GetMapping("/posts/{id}")
-    public String postView(Model model){
+    public String postView(Model model, @PathVariable long id){
 //    get single post by id later
-        Post post = new Post("First Post", "This is my first post", 1);
-        model.addAttribute("title", "Single Posts");
-        model.addAttribute("post", post);
+        Post post = postDao.getOne(id);
+        model.addAttribute("post",post);
         return "posts/show";
     }
 
+    @GetMapping("/posts/{id}/edit")
+    public String viewEditPostForm(@PathVariable long id, Model model){
+        model.addAttribute("post",postDao.getOne(id));
+        return "posts/edit";
+    }
+
+    @PostMapping("/posts/{id}/edit")
+    public String updatePost(@PathVariable long id, @ModelAttribute Post post){
+        User user = userDao.findAll().get(0);
+        post.setUser(user);
+        postDao.save(post);
+        return "redirect:/posts";
+    }
+
+    @PostMapping("/posts/{id}/delete")
+    public String deletePost( Model model,@PathVariable long id){
+          postDao.deleteById(id);
+        return "redirect:/posts";
+    }
+
     @GetMapping("/posts/create")
-    @ResponseBody
-    public String postForm(){
-        return "view the form for creating a post";
+    public String postForm(Model model){
+        model.addAttribute("post", new Post());
+        return "posts/create";
     }
 
     @PostMapping("/posts/create")
-    @ResponseBody
-    public String createPost(){
-        return "Create a new post";
+    public String createPost(@ModelAttribute Post post){
+        // Will throw if no users in the db!
+        // In the future, we will get the logged in user!
+        User user = userDao.findAll().get(0);
+        post.setUser(user);
+        postDao.save(post);
+        return "redirect:/posts";
     }
 }
